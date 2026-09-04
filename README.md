@@ -174,7 +174,7 @@ The Sepolia contract provides an auditable record of inputs, actions and outcome
 
 ---
 
-## Running the frontend
+## The frontend
 
 ### Requirements
 
