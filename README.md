@@ -81,9 +81,14 @@ The Lending and Borrowing / Liquidation Smart Contract is deployed on Sepolia th
 The time-weighted debt score (`cumulativeDebtTime`) is accumulated on-chain each time debt changes, tracking `debt × elapsed_seconds` for the loan-continuity metric.
 
 The Chainlink Labs team controls the scenario lifecycle:
-- `start()` — sets the shared scenario clock; all debt-time scoring begins from this moment, regardless of when each participant joined.
-- `stop()` — ends the scenario; computes and stores the final `loanContinuityScore` (0–10000 basis points) for every participant on-chain.
-- `updatevETHPrice()` — submits vETH price updates during synchronized rounds.
+
+| Function | Event emitted | Description |
+| ----- | ----- | ----- |
+| `open()` | `ChallengeOpened` | Opens registration; participants can now call `join()`. |
+| `close()` | `ChallengeClosed` | Closes registration; no new participants. |
+| `start()` | `ChallengeStarted` | Sets the shared scenario clock; debt-time scoring begins for all participants from this moment. |
+| `updatevETHPrice()` | `PriceUpdate` | Submits a vETH price update during a synchronized round. |
+| `stop()` | `ChallengeStopped`, `LoanContinuityScored` | Ends the scenario; computes and stores the final `loanContinuityScore` (0–10000 basis points) on-chain for every participant. |
 
 
 ### **Market scenarios examples**
