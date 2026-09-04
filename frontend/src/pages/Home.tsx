@@ -402,11 +402,15 @@ function AdminPanel({ lendingAddress, onTxSuccess }: AdminPanelProps) {
     { address: lendingAddress, abi: LENDING_ABI, functionName: "scenarioStartTime" },
     [lendingAddress]
   );
+  const { data: scenarioEnd, refetch: refetchEnd } = useRead<bigint>(
+    { address: lendingAddress, abi: LENDING_ABI, functionName: "scenarioEndTime" },
+    [lendingAddress]
+  );
 
   const scenarioStarted = scenarioStart !== undefined && scenarioStart > 0n;
-  const scenarioStartDate = scenarioStarted
-    ? new Date(Number(scenarioStart) * 1000).toLocaleString()
-    : null;
+  const scenarioStopped = scenarioEnd !== undefined && scenarioEnd > 0n;
+  const scenarioStartDate = scenarioStarted ? new Date(Number(scenarioStart) * 1000).toLocaleString() : null;
+  const scenarioEndDate = scenarioStopped ? new Date(Number(scenarioEnd) * 1000).toLocaleString() : null;
 
   const isBusy = isPending || isConfirming;
   const isBusy2 = p2 || c2;
@@ -436,14 +440,27 @@ function AdminPanel({ lendingAddress, onTxSuccess }: AdminPanelProps) {
     onTxSuccess();
   };
 
-  const handleStartScenario = async () => {
+  const handleStart = async () => {
     const ok = await write3({
       address: lendingAddress,
       abi: LENDING_ABI,
-      functionName: "startScenario",
+      functionName: "start",
       args: [],
     });
     if (ok) { refetchStart(); onTxSuccess(); }
+  };
+
+  const { write: write4, isPending: p4, isConfirming: c4, isSuccess: s4, error: e4 } = useWrite(walletClient);
+  const isBusy4 = p4 || c4;
+
+  const handleStop = async () => {
+    const ok = await write4({
+      address: lendingAddress,
+      abi: LENDING_ABI,
+      functionName: "stop",
+      args: [],
+    });
+    if (ok) { refetchEnd(); onTxSuccess(); }
   };
 
   return (
@@ -458,25 +475,41 @@ function AdminPanel({ lendingAddress, onTxSuccess }: AdminPanelProps) {
 
       {open && (
         <div className="stack-sm">
-          {/* Scenario start */}
+          {/* Scenario start / stop */}
           <div style={{ fontSize: "0.875rem", color: "var(--gray-400)" }}>
             Scenario Start:{" "}
             <strong style={{ color: scenarioStarted ? "var(--emerald-400)" : "#fff" }}>
               {scenarioStart === undefined ? "—" : scenarioStarted ? scenarioStartDate : "Not started"}
             </strong>
           </div>
+          {scenarioStopped && (
+            <div style={{ fontSize: "0.875rem", color: "var(--gray-400)" }}>
+              Scenario End:{" "}
+              <strong style={{ color: "var(--red-400)" }}>{scenarioEndDate}</strong>
+            </div>
+          )}
           {!scenarioStarted && (
             <>
-              <button
-                className="btn btn-primary btn-block"
-                disabled={isBusy3}
-                onClick={handleStartScenario}
-              >
-                {p3 ? "Waiting…" : c3 ? "Confirming…" : "Start Scenario (sets shared debt-time start)"}
+              <button className="btn btn-primary btn-block" disabled={isBusy3} onClick={handleStart}>
+                {p3 ? "Waiting…" : c3 ? "Confirming…" : "▶ Start Scenario"}
               </button>
-              {s3 && <div className="info-box" style={{ color: "var(--emerald-400)" }}>Scenario started! All participants now share this start time.</div>}
+              {s3 && <div className="info-box" style={{ color: "var(--emerald-400)" }}>Scenario started! Shared debt-time clock is now running.</div>}
               {e3 && <div className="alert-error">{e3}</div>}
             </>
+          )}
+          {scenarioStarted && !scenarioStopped && (
+            <>
+              <button className="btn btn-block" style={{ backgroundColor: "var(--red-400)", color: "#000" }} disabled={isBusy4} onClick={handleStop}>
+                {p4 ? "Waiting…" : c4 ? "Confirming…" : "⏹ Stop Scenario + Calculate Scores"}
+              </button>
+              {s4 && <div className="info-box" style={{ color: "var(--emerald-400)" }}>Scenario stopped! Loan continuity scores have been calculated and emitted.</div>}
+              {e4 && <div className="alert-error">{e4}</div>}
+            </>
+          )}
+          {scenarioStopped && (
+            <div className="info-box" style={{ color: "var(--yellow-300)", borderColor: "rgba(234,179,8,0.3)" }}>
+              Scenario complete — scores are final.
+            </div>
           )}
 
           <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "0.25rem 0" }} />
