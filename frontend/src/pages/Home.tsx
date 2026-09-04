@@ -65,6 +65,29 @@ function displayToUnits(displayVal: string): bigint {
   return BigInt(Math.floor(f * 100));
 }
 
+// ─── Scenario start chip ─────────────────────────────────────────────────────
+
+function ScenarioStartChip({ lendingAddress, enabled }: { lendingAddress: `0x${string}`; enabled: boolean }) {
+  const { data: scenarioStart } = useRead<bigint>(
+    { address: lendingAddress, abi: LENDING_ABI, functionName: "scenarioStartTime", enabled },
+    [lendingAddress]
+  );
+  const started = scenarioStart !== undefined && scenarioStart > 0n;
+  const label = scenarioStart === undefined
+    ? "—"
+    : started
+    ? new Date(Number(scenarioStart) * 1000).toLocaleString()
+    : "Not started";
+  return (
+    <div className="stat-chip">
+      <span className="stat-chip-label">Scenario Start</span>
+      <span className="stat-chip-value" style={{ fontSize: started ? "0.875rem" : undefined, color: started ? "var(--emerald-400)" : undefined }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
 // ─── Protocol stats ───────────────────────────────────────────────────────────
 
 interface ProtocolStatsProps {
@@ -123,6 +146,7 @@ function ProtocolStats({ lendingAddress, enabled }: ProtocolStatsProps) {
         <span className="stat-chip-label">Liquidation Threshold</span>
         <span className="stat-chip-value">{liquiThresh !== undefined ? `${liquiThresh}%` : "—"}</span>
       </div>
+      <ScenarioStartChip lendingAddress={lendingAddress} enabled={enabled} />
     </div>
   );
 }
@@ -368,14 +392,25 @@ function AdminPanel({ lendingAddress, onTxSuccess }: AdminPanelProps) {
   const [newPrice, setNewPrice] = useState("");
   const { write, isPending, isConfirming, isSuccess, error, reset } = useWrite(walletClient);
   const { write: write2, isPending: p2, isConfirming: c2, isSuccess: s2, error: e2 } = useWrite(walletClient);
+  const { write: write3, isPending: p3, isConfirming: c3, isSuccess: s3, error: e3 } = useWrite(walletClient);
 
-  const { data: currentPrice } = useRead<bigint>(
+  const { data: currentPrice, refetch: refetchPrice } = useRead<bigint>(
     { address: lendingAddress, abi: LENDING_ABI, functionName: "vETHPrice" },
     [lendingAddress]
   );
+  const { data: scenarioStart, refetch: refetchStart } = useRead<bigint>(
+    { address: lendingAddress, abi: LENDING_ABI, functionName: "scenarioStartTime" },
+    [lendingAddress]
+  );
+
+  const scenarioStarted = scenarioStart !== undefined && scenarioStart > 0n;
+  const scenarioStartDate = scenarioStarted
+    ? new Date(Number(scenarioStart) * 1000).toLocaleString()
+    : null;
 
   const isBusy = isPending || isConfirming;
   const isBusy2 = p2 || c2;
+  const isBusy3 = p3 || c3;
 
   const handlePriceUpdate = async () => {
     reset();
@@ -388,7 +423,7 @@ function AdminPanel({ lendingAddress, onTxSuccess }: AdminPanelProps) {
       functionName: "updatevETHPrice",
       args: [units],
     });
-    if (ok) { setNewPrice(""); onTxSuccess(); }
+    if (ok) { setNewPrice(""); refetchPrice(); onTxSuccess(); }
   };
 
   const handleCheckAll = async () => {
@@ -399,6 +434,16 @@ function AdminPanel({ lendingAddress, onTxSuccess }: AdminPanelProps) {
       args: [],
     });
     onTxSuccess();
+  };
+
+  const handleStartScenario = async () => {
+    const ok = await write3({
+      address: lendingAddress,
+      abi: LENDING_ABI,
+      functionName: "startScenario",
+      args: [],
+    });
+    if (ok) { refetchStart(); onTxSuccess(); }
   };
 
   return (
@@ -413,6 +458,29 @@ function AdminPanel({ lendingAddress, onTxSuccess }: AdminPanelProps) {
 
       {open && (
         <div className="stack-sm">
+          {/* Scenario start */}
+          <div style={{ fontSize: "0.875rem", color: "var(--gray-400)" }}>
+            Scenario Start:{" "}
+            <strong style={{ color: scenarioStarted ? "var(--emerald-400)" : "#fff" }}>
+              {scenarioStart === undefined ? "—" : scenarioStarted ? scenarioStartDate : "Not started"}
+            </strong>
+          </div>
+          {!scenarioStarted && (
+            <>
+              <button
+                className="btn btn-primary btn-block"
+                disabled={isBusy3}
+                onClick={handleStartScenario}
+              >
+                {p3 ? "Waiting…" : c3 ? "Confirming…" : "Start Scenario (sets shared debt-time start)"}
+              </button>
+              {s3 && <div className="info-box" style={{ color: "var(--emerald-400)" }}>Scenario started! All participants now share this start time.</div>}
+              {e3 && <div className="alert-error">{e3}</div>}
+            </>
+          )}
+
+          <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "0.25rem 0" }} />
+
           <div style={{ fontSize: "0.875rem", color: "var(--gray-400)" }}>
             Current vETH Price:{" "}
             <strong style={{ color: "#fff" }}>

@@ -17,6 +17,7 @@ export const LENDING_ABI = [
   { name: "start_Debt", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
 
   // User state
+  { name: "scenarioStartTime", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { name: "users", type: "function", stateMutability: "view", inputs: [{ name: "index", type: "uint256" }], outputs: [{ type: "address" }] },
   { name: "isUser", type: "function", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "bool" }] },
   { name: "userCollateral", type: "function", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] },
@@ -36,6 +37,7 @@ export const LENDING_ABI = [
   { name: "calcHF", type: "function", stateMutability: "nonpayable", inputs: [{ name: "user", type: "address" }], outputs: [{ type: "uint256" }] },
 
   // Admin actions
+  { name: "startScenario", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
   { name: "checkAllHF", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
   { name: "updatevETHPrice", type: "function", stateMutability: "nonpayable", inputs: [{ name: "price", type: "uint256" }], outputs: [] },
 
