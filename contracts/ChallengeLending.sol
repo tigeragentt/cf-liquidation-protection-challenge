@@ -82,6 +82,17 @@ contract ChallengeLending is AccessControl {
     }
 
     // -------------------------------------------------------------------------
+    // Modifiers
+    // -------------------------------------------------------------------------
+
+    /// @dev Requires the challenge to be open AND the scenario to have started.
+    modifier onlyActive() {
+        require(challengeOpen, "Challenge is not open");
+        require(scenarioStartTime > 0, "Scenario has not started");
+        _;
+    }
+
+    // -------------------------------------------------------------------------
     // Internal helpers
     // -------------------------------------------------------------------------
 
@@ -130,7 +141,7 @@ contract ChallengeLending is AccessControl {
     }
 
     /// @notice Deposit additional vETH as collateral.
-    function deposit(uint256 amount) external {
+    function deposit(uint256 amount) external onlyActive {
         require(isUser[msg.sender], "Not a participant");
         require(vETH.transferFrom(msg.sender, address(this), amount), "Transfer failed");
         userCollateral[msg.sender] += amount;
@@ -139,7 +150,7 @@ contract ChallengeLending is AccessControl {
     }
 
     /// @notice Borrow vUSD against collateral.
-    function borrow(uint256 amount) external {
+    function borrow(uint256 amount) external onlyActive {
         require(isUser[msg.sender], "Not a participant");
         // Check total debt (existing + new) stays within MAX_LTV
         require(
@@ -154,7 +165,7 @@ contract ChallengeLending is AccessControl {
     }
 
     /// @notice Repay vUSD debt.
-    function repay(uint256 amount) external {
+    function repay(uint256 amount) external onlyActive {
         require(isUser[msg.sender], "Not a participant");
         require(userDebt[msg.sender] >= amount, "Too much repayment");
         require(vUSD.transferFrom(msg.sender, address(this), amount), "Transfer failed");
@@ -165,7 +176,7 @@ contract ChallengeLending is AccessControl {
     }
 
     /// @notice Withdraw collateral — only allowed when debt is fully repaid.
-    function withdrawCollateral(uint256 amount) external {
+    function withdrawCollateral(uint256 amount) external onlyActive {
         require(isUser[msg.sender], "Not a participant");
         require(userDebt[msg.sender] == 0, "Pay all debt first");
         require(userCollateral[msg.sender] >= amount, "Not enough collateral");
