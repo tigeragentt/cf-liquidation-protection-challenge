@@ -43,6 +43,9 @@ contract ChallengeLending is AccessControl {
     mapping(address => uint256) public lastUpdateTime;      // timestamp of last debt change
     mapping(address => uint256) public cumulativeDebtTime;  // sum of (debt × elapsed seconds)
 
+    // Registration gate — join() reverts unless this is true
+    bool public challengeOpen;
+
     // Scenario timing — all debt-time is measured from this shared start point
     uint256 public scenarioStartTime; // 0 = not started; set by admin via start()
     uint256 public scenarioEndTime;   // 0 = not stopped; set by admin via stop()
@@ -54,6 +57,8 @@ contract ChallengeLending is AccessControl {
     // Events
     // -------------------------------------------------------------------------
 
+    event ChallengeOpened();
+    event ChallengeClosed();
     event PriceUpdate(uint256 oldPrice, uint256 newPrice);
     event Started(uint256 startTime);
     event Stopped(uint256 endTime, uint256 duration);
@@ -104,6 +109,7 @@ contract ChallengeLending is AccessControl {
 
     /// @notice Join the challenge — creates a virtual position for the caller.
     function join() external {
+        require(challengeOpen, "Challenge is not open");
         require(!isUser[msg.sender], "Already joined");
         users.push(msg.sender);
         isUser[msg.sender] = true;
@@ -248,6 +254,18 @@ contract ChallengeLending is AccessControl {
     // -------------------------------------------------------------------------
     // Admin
     // -------------------------------------------------------------------------
+
+    /// @notice Admin: open the challenge so participants can join.
+    function open() external onlyRole(ADMIN_ROLE) {
+        challengeOpen = true;
+        emit ChallengeOpened();
+    }
+
+    /// @notice Admin: close registration — join() will revert after this.
+    function close() external onlyRole(ADMIN_ROLE) {
+        challengeOpen = false;
+        emit ChallengeClosed();
+    }
 
     /// @notice Admin: mark the official scenario start. All debt-time scoring
     ///         begins from this timestamp regardless of when each user joined.
