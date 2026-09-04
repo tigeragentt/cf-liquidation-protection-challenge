@@ -44,14 +44,20 @@ contract ChallengeLending is AccessControl {
     mapping(address => uint256) public cumulativeDebtTime;  // sum of (debt × elapsed seconds)
 
     // Scenario timing — all debt-time is measured from this shared start point
-    uint256 public scenarioStartTime; // 0 = not started; set by admin via startScenario()
+    uint256 public scenarioStartTime; // 0 = not started; set by admin via start()
+    uint256 public scenarioEndTime;   // 0 = not stopped; set by admin via stop()
+
+    // Final loan-continuity scores computed at stop() — basis points (10000 = 100%)
+    mapping(address => uint256) public loanContinuityScore;
 
     // -------------------------------------------------------------------------
     // Events
     // -------------------------------------------------------------------------
 
     event PriceUpdate(uint256 oldPrice, uint256 newPrice);
-    event ScenarioStarted(uint256 startTime);
+    event Started(uint256 startTime);
+    event Stopped(uint256 endTime, uint256 duration);
+    event LoanContinuityScored(address indexed user, uint256 score);
     event Join(address indexed user);
     event Deposit(address indexed user, uint256 amount);
     event Borrow(address indexed user, uint256 amount);
@@ -75,15 +81,18 @@ contract ChallengeLending is AccessControl {
     // -------------------------------------------------------------------------
 
     /// @dev Accumulate (debt × elapsed time) before any debt change.
-    ///      Time is only counted from scenarioStartTime onward — users who joined
-    ///      before the scenario began are measured from the same shared start point.
+    ///      Time only counts between scenarioStartTime and scenarioEndTime (or now if
+    ///      not yet stopped), so all participants share the same scoring window.
     function _updateDebtTime(address user) internal {
         if (lastUpdateTime[user] != 0 && scenarioStartTime > 0) {
             uint256 from = lastUpdateTime[user] < scenarioStartTime
                 ? scenarioStartTime
                 : lastUpdateTime[user];
-            if (block.timestamp > from) {
-                cumulativeDebtTime[user] += userDebt[user] * (block.timestamp - from);
+            uint256 to = (scenarioEndTime > 0 && block.timestamp > scenarioEndTime)
+                ? scenarioEndTime
+                : block.timestamp;
+            if (to > from) {
+                cumulativeDebtTime[user] += userDebt[user] * (to - from);
             }
         }
         lastUpdateTime[user] = block.timestamp;
@@ -242,10 +251,32 @@ contract ChallengeLending is AccessControl {
 
     /// @notice Admin: mark the official scenario start. All debt-time scoring
     ///         begins from this timestamp regardless of when each user joined.
-    function startScenario() external onlyRole(ADMIN_ROLE) {
+    function start() external onlyRole(ADMIN_ROLE) {
         require(scenarioStartTime == 0, "Scenario already started");
         scenarioStartTime = block.timestamp;
-        emit ScenarioStarted(block.timestamp);
+        emit Started(block.timestamp);
+    }
+
+    /// @notice Admin: end the scenario. Flushes every participant's pending
+    ///         debt-time and computes their final loan-continuity score (0–10000 bp).
+    function stop() external onlyRole(ADMIN_ROLE) {
+        require(scenarioStartTime > 0, "Scenario not started");
+        require(scenarioEndTime == 0, "Scenario already stopped");
+        scenarioEndTime = block.timestamp;
+        uint256 duration = scenarioEndTime - scenarioStartTime;
+        emit Stopped(scenarioEndTime, duration);
+
+        if (duration == 0 || start_Debt == 0) return;
+        uint256 maxDebtTime = start_Debt * duration;
+
+        for (uint256 i = 0; i < users.length; i++) {
+            address user = users[i];
+            _updateDebtTime(user); // flush pending debt × time up to scenarioEndTime
+            uint256 score = cumulativeDebtTime[user] * 10000 / maxDebtTime;
+            if (score > 10000) score = 10000; // cap at 100%
+            loanContinuityScore[user] = score;
+            emit LoanContinuityScored(user, score);
+        }
     }
 
     function updatevETHPrice(uint256 price) external onlyRole(ADMIN_ROLE) {
