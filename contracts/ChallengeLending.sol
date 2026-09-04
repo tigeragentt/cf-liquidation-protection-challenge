@@ -43,11 +43,15 @@ contract ChallengeLending is AccessControl {
     mapping(address => uint256) public lastUpdateTime;      // timestamp of last debt change
     mapping(address => uint256) public cumulativeDebtTime;  // sum of (debt × elapsed seconds)
 
+    // Scenario timing — all debt-time is measured from this shared start point
+    uint256 public scenarioStartTime; // 0 = not started; set by admin via startScenario()
+
     // -------------------------------------------------------------------------
     // Events
     // -------------------------------------------------------------------------
 
     event PriceUpdate(uint256 oldPrice, uint256 newPrice);
+    event ScenarioStarted(uint256 startTime);
     event Join(address indexed user);
     event Deposit(address indexed user, uint256 amount);
     event Borrow(address indexed user, uint256 amount);
@@ -71,10 +75,16 @@ contract ChallengeLending is AccessControl {
     // -------------------------------------------------------------------------
 
     /// @dev Accumulate (debt × elapsed time) before any debt change.
+    ///      Time is only counted from scenarioStartTime onward — users who joined
+    ///      before the scenario began are measured from the same shared start point.
     function _updateDebtTime(address user) internal {
-        if (lastUpdateTime[user] != 0) {
-            cumulativeDebtTime[user] +=
-                userDebt[user] * (block.timestamp - lastUpdateTime[user]);
+        if (lastUpdateTime[user] != 0 && scenarioStartTime > 0) {
+            uint256 from = lastUpdateTime[user] < scenarioStartTime
+                ? scenarioStartTime
+                : lastUpdateTime[user];
+            if (block.timestamp > from) {
+                cumulativeDebtTime[user] += userDebt[user] * (block.timestamp - from);
+            }
         }
         lastUpdateTime[user] = block.timestamp;
     }
@@ -229,6 +239,14 @@ contract ChallengeLending is AccessControl {
     // -------------------------------------------------------------------------
     // Admin
     // -------------------------------------------------------------------------
+
+    /// @notice Admin: mark the official scenario start. All debt-time scoring
+    ///         begins from this timestamp regardless of when each user joined.
+    function startScenario() external onlyRole(ADMIN_ROLE) {
+        require(scenarioStartTime == 0, "Scenario already started");
+        scenarioStartTime = block.timestamp;
+        emit ScenarioStarted(block.timestamp);
+    }
 
     function updatevETHPrice(uint256 price) external onlyRole(ADMIN_ROLE) {
         emit PriceUpdate(vETHPrice, price);
