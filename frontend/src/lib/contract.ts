@@ -16,7 +16,8 @@ export const LENDING_ABI = [
   { name: "start_Collateral", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { name: "start_Debt", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
 
-  // User state
+  // Challenge + scenario state
+  { name: "challengeOpen", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "bool" }] },
   { name: "scenarioStartTime", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { name: "scenarioEndTime", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
   { name: "loanContinuityScore", type: "function", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] },
@@ -39,6 +40,8 @@ export const LENDING_ABI = [
   { name: "calcHF", type: "function", stateMutability: "nonpayable", inputs: [{ name: "user", type: "address" }], outputs: [{ type: "uint256" }] },
 
   // Admin actions
+  { name: "open", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
+  { name: "close", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
   { name: "start", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
   { name: "stop", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
   { name: "checkAllHF", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },

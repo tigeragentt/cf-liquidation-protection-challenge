@@ -88,6 +88,21 @@ function ScenarioStartChip({ lendingAddress, enabled }: { lendingAddress: `0x${s
   );
 }
 
+function ChallengeOpenChip({ lendingAddress, enabled }: { lendingAddress: `0x${string}`; enabled: boolean }) {
+  const { data: isOpen } = useRead<boolean>(
+    { address: lendingAddress, abi: LENDING_ABI, functionName: "challengeOpen", enabled },
+    [lendingAddress]
+  );
+  return (
+    <div className="stat-chip">
+      <span className="stat-chip-label">Registration</span>
+      <span className="stat-chip-value" style={{ color: isOpen ? "var(--emerald-400)" : "var(--red-400)" }}>
+        {isOpen === undefined ? "—" : isOpen ? "Open" : "Closed"}
+      </span>
+    </div>
+  );
+}
+
 // ─── Protocol stats ───────────────────────────────────────────────────────────
 
 interface ProtocolStatsProps {
@@ -147,6 +162,7 @@ function ProtocolStats({ lendingAddress, enabled }: ProtocolStatsProps) {
         <span className="stat-chip-value">{liquiThresh !== undefined ? `${liquiThresh}%` : "—"}</span>
       </div>
       <ScenarioStartChip lendingAddress={lendingAddress} enabled={enabled} />
+      <ChallengeOpenChip lendingAddress={lendingAddress} enabled={enabled} />
     </div>
   );
 }
@@ -393,6 +409,24 @@ function AdminPanel({ lendingAddress, onTxSuccess }: AdminPanelProps) {
   const { write, isPending, isConfirming, isSuccess, error, reset } = useWrite(walletClient);
   const { write: write2, isPending: p2, isConfirming: c2, isSuccess: s2, error: e2 } = useWrite(walletClient);
   const { write: write3, isPending: p3, isConfirming: c3, isSuccess: s3, error: e3 } = useWrite(walletClient);
+  const { write: writeOpen, isPending: pOpen, isConfirming: cOpen, isSuccess: sOpen, error: eOpen } = useWrite(walletClient);
+
+  const { data: challengeOpen, refetch: refetchChallengeOpen } = useRead<boolean>(
+    { address: lendingAddress, abi: LENDING_ABI, functionName: "challengeOpen" },
+    [lendingAddress]
+  );
+
+  const isBusyOpen = pOpen || cOpen;
+
+  const handleOpen = async () => {
+    const ok = await writeOpen({ address: lendingAddress, abi: LENDING_ABI, functionName: "open", args: [] });
+    if (ok) { refetchChallengeOpen(); onTxSuccess(); }
+  };
+
+  const handleClose = async () => {
+    const ok = await writeOpen({ address: lendingAddress, abi: LENDING_ABI, functionName: "close", args: [] });
+    if (ok) { refetchChallengeOpen(); onTxSuccess(); }
+  };
 
   const { data: currentPrice, refetch: refetchPrice } = useRead<bigint>(
     { address: lendingAddress, abi: LENDING_ABI, functionName: "vETHPrice" },
@@ -475,6 +509,36 @@ function AdminPanel({ lendingAddress, onTxSuccess }: AdminPanelProps) {
 
       {open && (
         <div className="stack-sm">
+          {/* Challenge open / close */}
+          <div style={{ fontSize: "0.875rem", color: "var(--gray-400)" }}>
+            Registration:{" "}
+            <strong style={{ color: challengeOpen ? "var(--emerald-400)" : "var(--red-400)" }}>
+              {challengeOpen === undefined ? "—" : challengeOpen ? "Open" : "Closed"}
+            </strong>
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              className="btn btn-primary"
+              style={{ flex: 1 }}
+              disabled={isBusyOpen || !!challengeOpen}
+              onClick={handleOpen}
+            >
+              {pOpen ? "Waiting…" : cOpen ? "Confirming…" : "Open Registration"}
+            </button>
+            <button
+              className="btn btn-warning"
+              style={{ flex: 1 }}
+              disabled={isBusyOpen || !challengeOpen}
+              onClick={handleClose}
+            >
+              {pOpen ? "Waiting…" : cOpen ? "Confirming…" : "Close Registration"}
+            </button>
+          </div>
+          {sOpen && <div className="info-box" style={{ color: "var(--emerald-400)" }}>Registration status updated!</div>}
+          {eOpen && <div className="alert-error">{eOpen}</div>}
+
+          <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "0.25rem 0" }} />
+
           {/* Scenario start / stop */}
           <div style={{ fontSize: "0.875rem", color: "var(--gray-400)" }}>
             Scenario Start:{" "}
@@ -726,6 +790,11 @@ export function HomePage() {
     [lendingAddress, address]
   );
 
+  const { data: challengeIsOpen } = useRead<boolean>(
+    { address: lendingAddress, abi: LENDING_ABI, functionName: "challengeOpen", enabled: hasLending },
+    [lendingAddress]
+  );
+
   const { data: adminRole } = useRead<`0x${string}`>(
     { address: lendingAddress, abi: LENDING_ABI, functionName: "ADMIN_ROLE", enabled: hasLending },
     [lendingAddress]
@@ -810,9 +879,14 @@ export function HomePage() {
                 <p className="muted" style={{ marginBottom: "1rem" }}>
                   Join the challenge to get starter vETH and vUSD, with a virtual collateral position.
                 </p>
+                {!challengeIsOpen && (
+                  <div className="info-box info-pending" style={{ marginBottom: "0.75rem" }}>
+                    Registration is currently closed — the organizer has not opened the challenge yet.
+                  </div>
+                )}
                 <button
                   className="btn btn-primary btn-block btn-lg"
-                  disabled={joinBusy}
+                  disabled={joinBusy || !challengeIsOpen}
                   onClick={handleJoin}
                 >
                   {joinPending ? "Waiting for wallet…" : joinConfirming ? "Confirming…" : "Join Challenge"}
