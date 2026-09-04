@@ -2,14 +2,13 @@
 Automated Liquidation Protection Challenge
 using CRE Confidential Workflows
 
-Tokens:
-- virtual ETH - vETH - [0x89F0DF6D4629D494D599E03505C323537C24667a](https://etherscan.io/address/0x89F0DF6D4629D494D599E03505C323537C24667a)
-
-- virtual USD - vUSD - [0xC96c007023Ae2a23D097D5D95d4b91D6a501Da0b](https://etherscan.io/address/0xC96c007023Ae2a23D097D5D95d4b91D6a501Da0b)
+Tokens (Sepolia):
+- virtual ETH - vETH - [0x89F0DF6D4629D494D599E03505C323537C24667a](https://sepolia.etherscan.io/address/0x89F0DF6D4629D494D599E03505C323537C24667a)
+- virtual USD - vUSD - [0xC96c007023Ae2a23D097D5D95d4b91D6a501Da0b](https://sepolia.etherscan.io/address/0xC96c007023Ae2a23D097D5D95d4b91D6a501Da0b)
 
 # The challenge
 
-Build a Confidential Workflow that protects a virtual ETH-collateral/USDC-debt position during simulated market movements.
+Build a Confidential Workflow that protects a virtual ETH-collateral/vUSD-debt position during simulated market movements.
 
 The workflow must:
 
@@ -23,8 +22,8 @@ The following should remain inside the Confidential Workflow:
 
 * Health-factor trigger for intervention.  
 * Target health factor after intervention.  
-* Maximum USDC repayment allowed.  
-* Maximum additional ETH collateral allowed.  
+* Maximum vUSD repayment allowed.  
+* Maximum additional vETH collateral allowed.  
 * Choice and priority of protection actions.  
 * Safety margin applied during volatile markets.  
 * Cooldown between interventions.  
@@ -37,8 +36,8 @@ For example, a participant might privately configure:
 ```
 Intervene when health factor < 1.08
 Restore health factor to 1.18
-Repay no more than 15% of the original debt
-Add collateral only if repayment is insufficient
+Repay no more than 15% of the original vUSD debt
+Add vETH collateral only if repayment is insufficient
 Wait at least two price intervals between non-critical actions
 ```
 
@@ -52,22 +51,35 @@ Observers will see when the workflow acts and how much it repays or adds, so the
 ## Organizer Setup
 Deploy a liquidation challenge contract on Sepolia that:
 - Creates an identical virtual position for every participant.
-- Create virtual assets, to use like ETH as collateral and USDC as debt, example: vETH and vUSD.
+- Uses virtual assets: vETH as collateral and vUSD as debt (both with 2 decimal places).
 - Calculates an Aave-style health factor.
-- Supports virtual `repay USDC` and `add ETH collateral` actions.
+- Supports virtual `repay vUSD` and `deposit vETH collateral` actions.
 - Tracks liquidations, capital usage, interventions and time-weighted debt.
 - Emits all actions and results onchain.
 - No real collateral or debt tokens are required. Participants need only enough Sepolia ETH for gas.
 
-Example virtual position:
-* `0.01 ETH` collateral.  
-* ETH price of `$2,000`.  
-* `$12.80 USDC` debt.  
-* 80% liquidation threshold.  
-* Starting health factor of `1.25`.  
-* Fixed virtual emergency ETH and USDC allowances.
+### Contract parameters
 
-Organizer manually submits ETH price updates during synchronized rounds.
+| Parameter | Value | Description |
+| ----- | ----- | ----- |
+| `MAX_LTV` | 75% | Maximum loan-to-value ratio for new borrows |
+| `LIQUI_THRESHOLD` | 78% | Health factor falls below 1.00 when LTV exceeds this |
+| `LIQUI_PENALTY` | 5% | Extra collateral seized from liquidated positions |
+| `vETHPrice` (initial) | 2000.00 vUSD/vETH | Updated by organizer each round |
+
+### Starting position (per participant, on `join()`)
+
+| Item | Amount | Description |
+| ----- | ----- | ----- |
+| vETH received | 5.00 vETH | Free balance to use as emergency collateral |
+| vETH collateral | 5.00 vETH | Locked as collateral from the start |
+| vUSD received | 3000.00 vUSD | Free balance to use for emergency repayments |
+| vUSD debt | 7000.00 vUSD | Outstanding debt from the start |
+| Starting HF | ~1.11 | `(5.00 × 2000.00 × 78%) / 7000.00` |
+
+The time-weighted debt score (`cumulativeDebtTime`) is accumulated on-chain each time debt changes, tracking `debt × elapsed_seconds` for the loan-continuity metric.
+
+Organizer manually submits vETH price updates during synchronized rounds via `updatevETHPrice()`.
 
 
 ### **Market scenarios examples**
@@ -88,7 +100,7 @@ Each scenario produces a score out of 100:
 | ----- | ----- | ----- |
 | Liquidation protection | 40 | Whether the position survives the scenario. |
 | Loan continuity | 20 | Time-weighted percentage of the original debt kept open. |
-| Capital efficiency | 15 | Emergency ETH and USDC consumed. |
+| Capital efficiency | 15 | Emergency vETH and vUSD consumed. |
 | Confidentiality | 15 | Protection of private inputs, credentials and execution policy. |
 | Intervention discipline | 10 | Avoiding unnecessary, excessive or repeated actions. |
 
@@ -121,7 +133,7 @@ Loan Continuity =
 4. Average the scenario scores.  
 5. Highest overall score wins.  
 6. Use the worst scenario score as the first tie-breaker.  
-7. Use the least emergency capital consumed as the second tie-breaker.
+7. Use the least emergency vETH/vUSD capital consumed as the second tie-breaker.
 
 All participants receive identical positions, prices, timing and virtual capital allowances. 
 
