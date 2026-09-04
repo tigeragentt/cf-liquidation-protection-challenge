@@ -171,3 +171,33 @@ Loan Continuity =
 All participants receive identical positions, prices, timing and virtual capital allowances. 
 
 The Sepolia contract provides an auditable record of inputs, actions and outcomes.
+
+---
+
+## Running the frontend
+
+### Requirements
+
+- Node.js 18+
+- npm 9+
+- A browser wallet (MetaMask or compatible) connected to **Ethereum Sepolia**
+
+### Install and run
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+The contract addresses are pre-configured. Connect your wallet (Sepolia), then use `join()` to enter the challenge.
+
+### Build for production
+
+```bash
+npm run build
+```
+
+Output is in `frontend/dist/`.

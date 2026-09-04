@@ -66,7 +66,7 @@ export const ERC20_ABI = [
 // ─── Address helpers ─────────────────────────────────────────────────────────
 
 export function getLendingAddress(): `0x${string}` {
-  return (localStorage.getItem("lendingAddress") || import.meta.env.CONTRACT_ADDRESS || "") as `0x${string}`;
+  return (localStorage.getItem("lendingAddress") || import.meta.env.CONTRACT_ADDRESS || "0x59d5B29FbA5ca865a171076BE94EbEeC5BCA1E04") as `0x${string}`;
 }
 
 export function getVethAddress(): `0x${string}` {
