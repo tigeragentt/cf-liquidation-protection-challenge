@@ -60,8 +60,8 @@ contract ChallengeLending is AccessControl {
     event ChallengeOpened();
     event ChallengeClosed();
     event PriceUpdate(uint256 oldPrice, uint256 newPrice);
-    event Started(uint256 startTime);
-    event Stopped(uint256 endTime, uint256 duration);
+    event ChallengeStarted(uint256 startTime);
+    event ChallengeStopped(uint256 endTime, uint256 duration);
     event LoanContinuityScored(address indexed user, uint256 score);
     event Join(address indexed user);
     event Deposit(address indexed user, uint256 amount);
@@ -283,7 +283,7 @@ contract ChallengeLending is AccessControl {
     function start() external onlyRole(ADMIN_ROLE) {
         require(scenarioStartTime == 0, "Scenario already started");
         scenarioStartTime = block.timestamp;
-        emit Started(block.timestamp);
+        emit ChallengeStarted(block.timestamp);
     }
 
     /// @notice Admin: end the scenario. Flushes every participant's pending
@@ -293,7 +293,7 @@ contract ChallengeLending is AccessControl {
         require(scenarioEndTime == 0, "Scenario already stopped");
         scenarioEndTime = block.timestamp;
         uint256 duration = scenarioEndTime - scenarioStartTime;
-        emit Stopped(scenarioEndTime, duration);
+        emit ChallengeStopped(scenarioEndTime, duration);
 
         if (duration == 0 || start_Debt == 0) return;
         uint256 maxDebtTime = start_Debt * duration;
