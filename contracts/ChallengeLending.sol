@@ -79,6 +79,9 @@ contract ChallengeLending is AccessControl {
         _grantRole(ADMIN_ROLE, msg.sender);
         vETH = TokenInterface(_vETHaddress);
         vUSD = TokenInterface(_vUSDaddress);
+        challengeOpen = false;
+        scenarioStartTime = 0;
+        scenarioEndTime = 0;
     }
 
     // -------------------------------------------------------------------------
