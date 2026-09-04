@@ -48,17 +48,18 @@ Observers will see when the workflow acts and how much it repays or adds, so the
 
 > The confidentiality objective is to protect the inputs and decision logic before execution—not to make public-chain actions invisible.
 
-## Organizer Setup
-Deploy a liquidation challenge contract on Sepolia that:
+## The Smart Contract Challenge
+The Lending and Borrowing / Liquidation Smart Contract is deployed on Sepolia that:
 - Creates an identical virtual position for every participant.
 - Uses virtual assets: vETH as collateral and vUSD as debt (both with 2 decimal places).
-- Calculates an Aave-style health factor.
+- Calculates an Aave-style health factor HF.
 - Supports virtual `repay vUSD` and `deposit vETH collateral` actions.
 - Tracks liquidations, capital usage, interventions and time-weighted debt.
 - Emits all actions and results onchain.
-- No real collateral or debt tokens are required. Participants need only enough Sepolia ETH for gas.
+- No real collateral or debt tokens are required. 
+- Participants need only enough Sepolia ETH for gas.
 
-### Contract parameters
+### Smart Contract parameters
 
 | Parameter | Value | Description |
 | ----- | ----- | ----- |
@@ -79,7 +80,10 @@ Deploy a liquidation challenge contract on Sepolia that:
 
 The time-weighted debt score (`cumulativeDebtTime`) is accumulated on-chain each time debt changes, tracking `debt × elapsed_seconds` for the loan-continuity metric.
 
-Organizer manually submits vETH price updates during synchronized rounds via `updatevETHPrice()`.
+The Chainlink Labs team controls the scenario lifecycle:
+- `start()` — sets the shared scenario clock; all debt-time scoring begins from this moment, regardless of when each participant joined.
+- `stop()` — ends the scenario; computes and stores the final `loanContinuityScore` (0–10000 basis points) for every participant on-chain.
+- `updatevETHPrice()` — submits vETH price updates during synchronized rounds.
 
 
 ### **Market scenarios examples**
