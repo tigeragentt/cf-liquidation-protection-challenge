@@ -259,6 +259,16 @@ function ActionPanel({ lendingAddress, address, onTxSuccess }: ActionPanelProps)
   const [amount, setAmount] = useState("");
   const { write, isPending, isConfirming, isSuccess, error, reset } = useWrite(walletClient);
 
+  const { data: challengeOpen } = useRead<boolean>(
+    { address: lendingAddress, abi: LENDING_ABI, functionName: "challengeOpen" },
+    [lendingAddress]
+  );
+  const { data: scenarioStart } = useRead<bigint>(
+    { address: lendingAddress, abi: LENDING_ABI, functionName: "scenarioStartTime" },
+    [lendingAddress]
+  );
+  const isActive = !!challengeOpen && scenarioStart !== undefined && scenarioStart > 0n;
+
   const vethAddr = getVethAddress();
   const vusdAddr = getVusdAddress();
 
@@ -363,7 +373,15 @@ function ActionPanel({ lendingAddress, address, onTxSuccess }: ActionPanelProps)
         )}
       </div>
 
-      {needsApprove && (
+      {!isActive && (
+        <div className="info-box info-pending" style={{ marginBottom: "0.75rem" }}>
+          {!challengeOpen
+            ? "Actions are unavailable — registration is closed."
+            : "Actions are unavailable — the scenario has not started yet."}
+        </div>
+      )}
+
+      {isActive && needsApprove && (
         <div className="info-box info-pending" style={{ marginBottom: "0.75rem" }}>
           Approval required — clicking submit will first approve, then {tab}.
         </div>
@@ -371,7 +389,7 @@ function ActionPanel({ lendingAddress, address, onTxSuccess }: ActionPanelProps)
 
       <button
         className="btn btn-primary btn-block"
-        disabled={isBusy || units === 0n}
+        disabled={isBusy || units === 0n || !isActive}
         onClick={handleSubmit}
       >
         {isPending
