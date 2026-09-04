@@ -1,10 +1,13 @@
-# cf-liquidation-protection-challenge
-Automated Liquidation Protection Challenge
-using CRE Confidential Workflows
+# Automated Liquidation Protection Challenge 
+# using CRE Confidential Workflows
 
-Tokens (Sepolia):
+
+Tokens ERC20 (Ethereum Sepolia):
 - virtual ETH - vETH - [0x89F0DF6D4629D494D599E03505C323537C24667a](https://sepolia.etherscan.io/address/0x89F0DF6D4629D494D599E03505C323537C24667a)
 - virtual USD - vUSD - [0xC96c007023Ae2a23D097D5D95d4b91D6a501Da0b](https://sepolia.etherscan.io/address/0xC96c007023Ae2a23D097D5D95d4b91D6a501Da0b)
+
+The Lending and Borrowing / Liquidation Smart Contract Challenge address (Ethereum Sepolia):
+[0x59d5B29FbA5ca865a171076BE94EbEeC5BCA1E04](https://sepolia.etherscan.io/address/0x59d5B29FbA5ca865a171076BE94EbEeC5BCA1E04)
 
 # The challenge
 
@@ -16,6 +19,23 @@ The workflow must:
 * Preserve the benefit of keeping the loan open.  
 * Use emergency capital efficiently.  
 * Keep sensitive protection rules and credentials private.
+
+## How to do it
+
+You can create and deploy your workflow until the hackathon submission deadline.
+
+Fork this repo and do local simulations, or even test your workflow yourself, deploying a personal challenge smart contract / tokens.
+
+Until the hackathon submission deadline, update your workflow to join the official challenge, using the smart contract addresses defined on this readme file.
+
+Use the function `join()` to join the challenge in the official smart contract.
+
+> Join from Sept 8 to hackathon submission deadline.
+
+After the deadline, Chainlink team will run the scenarios, during the next 24h and discover the winner.
+
+> You can not update your workflow after the hackathon submission deadline.
+
 
 ### Private workflow inputs
 The following should remain inside the Confidential Workflow:
@@ -48,11 +68,13 @@ Observers will see when the workflow acts and how much it repays or adds, so the
 
 > The confidentiality objective is to protect the inputs and decision logic before execution—not to make public-chain actions invisible.
 
-## The Smart Contract Challenge
-The Lending and Borrowing / Liquidation Smart Contract is deployed on Sepolia that:
+## The Lending and Borrowing / Liquidation Smart Contract
+
+The Lending and Borrowing / Liquidation Smart Contract is deployed on Ethereum Sepolia.
+
 - Creates an identical virtual position for every participant.
 - Uses virtual assets: vETH as collateral and vUSD as debt (both with 2 decimal places).
-- Calculates an Aave-style health factor HF.
+- Calculates the health factor HF.
 - Supports virtual `repay vUSD` and `deposit vETH collateral` actions.
 - Tracks liquidations, capital usage, interventions and time-weighted debt.
 - Emits all actions and results onchain.
@@ -67,6 +89,8 @@ The Lending and Borrowing / Liquidation Smart Contract is deployed on Sepolia th
 | `LIQUI_THRESHOLD` | 78% | Health factor falls below 1.00 when LTV exceeds this |
 | `LIQUI_PENALTY` | 5% | Extra collateral seized from liquidated positions |
 | `vETHPrice` (initial) | 2000.00 vUSD/vETH | Updated by organizer each round |
+
+> User HF = userCollateral * vETHPrice * LIQUI_THRESHOLD / userDebt
 
 ### Starting position (per participant, on `join()`)
 
@@ -134,7 +158,7 @@ Loan Continuity =
 | Confidential execution evidence or an execution receipt is provided | 3 |
 
 
-### **Selecting the winner**
+#### **Selecting the winner**
 
 1. Run every workflow through all market scenarios.  
 2. Calculate the score for each scenario.  
