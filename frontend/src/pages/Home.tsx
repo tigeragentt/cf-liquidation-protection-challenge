@@ -777,6 +777,10 @@ function RankingTable({ lendingAddress, connectedAddress, refreshTick }: Ranking
           </table>
         </div>
       )}
+
+      <p style={{ marginTop: "1rem", fontSize: "0.85rem", color: "var(--gray-400)", fontStyle: "italic" }}>
+        The Leaderboard is not the final winner, it is part of the evaluation, which will also count your project itself, including the source code.
+      </p>
     </div>
   );
 }
